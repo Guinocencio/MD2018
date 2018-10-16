@@ -1,0 +1,38 @@
+---
+title: "Atividade02/10"
+output: html_notebook
+---
+
+
+
+````{r} 
+
+require(e1071)
+
+dados_ini <- subset(orcamentaria, select = -Classifcadores)
+result <- orcamentaria$Classifcadores
+
+modeloSvm <- svm(Classifcadores ~., data = orcamentaria)
+
+summary(modeloSvm)
+
+````
+
+
+
+````{r}
+
+teste <- predict(modeloSvm, dados_ini)
+table(teste, result)
+
+
+````
+
+
+#Teste para melhorar o modelo
+````{r}
+
+
+
+
+````
