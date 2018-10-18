@@ -25,13 +25,20 @@ summary(modeloSvm)
 teste <- predict(modeloSvm, dados_ini)
 table(teste, result)
 
-
+ 
 ````
 
 
 #Teste para melhorar o modelo
 ````{r}
 
+melhorado <- tune(svm, Classifcadores~ ., data = orcamentaria)
+plot(obj)
+
+tunsvm <-svm(Classifcadores ~.,orcamentaria,gamma=0.5,cost=4,cross=10)
+1-tunsvm$tot.accuracy/100
+
+table(predict(tunsvm, orcamentaria),orcamentaria$Classifcadores)
 
 
 
