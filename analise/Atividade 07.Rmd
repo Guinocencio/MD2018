@@ -1,6 +1,5 @@
 ---
 title: "Atividade 07"
-date:
 output: html_notebook
 ---
 
