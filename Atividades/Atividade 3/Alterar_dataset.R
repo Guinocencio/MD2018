@@ -1,10 +1,9 @@
-require(dplyr)
 
-p_load(dplyr)
-
-orcamentaria <- tbl_df(read.csv("./dados/historica2018.csv"))
-
-orcamentaria <- rename(orcamentaria, `Empenho2000`= `Empenhado_2000..R..milhões.`)
+  
+  #Transformações
+  
+  
+  orcamentaria <- rename(orcamentaria, `Empenho2000`= `Empenhado_2000..R..milhões.`)
 orcamentaria <- rename(orcamentaria, `Empenho2001`= `Empenhado_2001..R..milhões.`)
 orcamentaria <- rename(orcamentaria, `Empenho2002`= `Empenhado_2002..R..milhões.`)
 orcamentaria <- rename(orcamentaria, `Empenho2003`= `Empenhado_2003..R..milhões.`)
@@ -26,51 +25,10 @@ orcamentaria <- rename(orcamentaria, `Empenho2018`= `Empenhado..R..milhões.`)
 orcamentaria <- rename(orcamentaria, `dotação atualizada`= `dotação.atualizada..R..milhões.`)
 
 
-#Transformações
-
-
-orcamentaria$Empenho2000 <- as.numeric(orcamentaria$Empenho2000)
-
-orcamentaria$Empenho2001 <- as.numeric(orcamentaria$Empenho2001 )
-
-orcamentaria$Empenho2002 <- as.numeric(orcamentaria$Empenho2002)
-
-orcamentaria$Empenho2003 <- as.numeric(orcamentaria$Empenho2003 )
-
-orcamentaria$Empenho2004 <- as.numeric(orcamentaria$Empenho2004 )
-
-orcamentaria$Empenho2005 <- as.numeric(orcamentaria$Empenho2005 )
-
-orcamentaria$Empenho2006 <- as.numeric(orcamentaria$Empenho2006 )
-
-orcamentaria$Empenho2007 <- as.numeric(orcamentaria$Empenho2007 )
-
-orcamentaria$Empenho2008 <- as.numeric(orcamentaria$Empenho2008 )
-
-orcamentaria$Empenho2009 <- as.numeric(orcamentaria$Empenho2009 )
-
-orcamentaria$Empenho2010 <- as.numeric(orcamentaria$Empenho2010 )
-
-orcamentaria$Empenho2011 <- as.numeric(orcamentaria$Empenho2011 )
-
-orcamentaria$Empenho2012 <- as.numeric(orcamentaria$Empenho2012 )
-
-orcamentaria$Empenho2013 <- as.numeric(orcamentaria$Empenho2013)
-
-orcamentaria$Empenho2014 <- as.numeric(orcamentaria$Empenho2014)
-
-orcamentaria$Empenho2015 <- as.numeric(orcamentaria$Empenho2015 )
-
-orcamentaria$Empenho2016 <- as.numeric(orcamentaria$Empenho2016)
-
-orcamentaria$Empenho2017 <- as.numeric(orcamentaria$Empenho2017 )
-
-orcamentaria$`dotação atualizada` <- as.numeric(orcamentaria$`dotação atualizada`)
-
-orcamentaria$Empenho2018 <- as.numeric(orcamentaria$Empenho2018)
-
 
 #Criando uma tabela para Classificar os dados da tabela Unidade.Orçamentaria
+
+
 
 orcamentaria <- mutate(orcamentaria, Classifcadores = as.character(Unidade.Orçamentária))
 
@@ -121,4 +79,6 @@ orcamentaria[orcamentaria$Unidade.Orçamentária == "Fundo de Administração do
 
 orcamentaria[orcamentaria$Unidade.Orçamentária == "Administração Direta", 23] <- "Administração"
 
+#Para fazer utilizar o SVM tem que transformar em fator
 
+orcamentaria$Classifcadores <- as.factor(orcamentaria$Classifcadores)
