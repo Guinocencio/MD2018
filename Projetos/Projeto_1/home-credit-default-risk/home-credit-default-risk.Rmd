@@ -1,0 +1,152 @@
+---
+title: ""
+output: html_notebook
+---
+
+```{r}
+library(pacman)
+library(tidyverse)
+library(caret)
+library(dplyr)
+library(randomForest)
+library(knitr)
+
+
+````
+
+#Pré Processamento
+
+
+````{r}
+#fazendo o carregamento dos dados
+
+test <- tbl_df(read.csv("./Projetos/Projeto_1/home-credit-default-risk/GTHouse/test.csv"))
+
+train <- tbl_df(read.csv("./Projetos/Projeto_1/home-credit-default-risk/GTHouse/train.csv"))
+
+
+````
+#Missing values Train
+```{r}
+#Train
+
+#Retirando os valores ausentes do arquivo de treino.
+train_numerica <- select_if(train, is.numeric)
+
+train_numerica[is.na(train_numerica)] <- 0
+
+train_caracteres <- select_if(train, is.factor)
+
+train_caracteres[sapply(train_caracteres, is.factor)] <- lapply(train_caracteres[sapply(train_caracteres, is.factor)], as.character)
+
+#substituindo os valores ausentes pela palavra nada
+train_caracteres[is.na(train_caracteres)] <- "Nada"
+
+````
+
+```{r}
+
+train_caracteres[sapply(train_caracteres, is.character)] <- lapply(train_caracteres[sapply(train_caracteres, is.character)], as.factor)
+
+train_novo <- cbind(train_numerica, train_caracteres)
+
+````
+
+#Missing values Test
+```{r}
+#Test
+
+test_numerica <- select_if(test, is.numeric)
+
+test_numerica[is.na(test_numerica)] <- 0
+
+test_caracteres <- select_if(test, is.factor)
+
+test_caracteres[sapply(test_caracteres, is.factor)] <- lapply(test_caracteres[sapply(train_caracteres, is.factor)], as.character)
+
+test_caracteres[is.na(test_caracteres)] <- "Nada"
+
+
+````
+
+```{r}
+
+test_caracteres[sapply(test_caracteres, is.character)] <- lapply(test_caracteres[sapply(test_caracteres, is.character)], as.factor)
+
+test_novo <- cbind(test_numerica, test_caracteres)
+
+
+````
+
+```{r}
+
+#serve para saber qual coluna está a mais em data set
+colnames(train_novo)[!(colnames(train_novo) %in% colnames(test_novo))]
+
+#Para excluir uma coluna que não será usada.
+SP=train_numerica$SalePrice
+train_numerica$SalePrice <- NULL
+
+````
+
+```{r}
+
+#trainSP <- subset(train, select = -SalePrice)
+
+````
+
+```{r}
+
+arvore <- randomForest(SalePrice ~ ., data=train_novo)
+T <- data.frame(arvore$predicted)
+
+````
+
+```{r}
+
+#Para colocar ID em um determinado numero
+T$ID <- 1461 :(1460 + nrow(T))
+T = T[,c(2,1)]
+colnames(T) <- c('ID', 'SalePrice')
+
+write.csv(T, file = "PreçoVendasRF.csv", quote  = FALSE, row.names = F )
+
+````
+
+```{r}
+
+#teste para o caret
+ctrl = trainControl(method="repeatedcv",
+                    number=2,
+                    repeats=1)
+rforest <- train(SalePrice ~ ., data=train_novo, 
+                 method = "rf",
+                 ntree = 1000,
+                 trControl = ctrl,
+                 tuneGrid = data.frame(mtry = 7))
+
+````
+
+```{r}
+
+
+
+````
+
+```{r}
+
+
+
+````
+
+```{r}
+
+
+
+````
+
+```{r}
+
+
+
+````
