@@ -1,9 +1,0 @@
-require(dplyr)
-
-p_load(dplyr)
-
-orcamentaria <- tbl_df(read.csv("./dados/historica2018.csv"))
-
-
-
-
