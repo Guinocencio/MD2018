@@ -1,0 +1,103 @@
+---
+title: "Atividade 07"
+output: html_notebook
+---
+
+#Atividade 7 (SVM): Treinar e testar SVM com diferentes kernels para o problema de classificação individual.
+
+#SVM com o Kernal Radial
+````{r} 
+
+require(e1071)
+
+dados_ini <- subset(orcamentaria, select = -Classifcadores)
+result <- orcamentaria$Classifcadores
+
+modeloSvm <- svm(Classifcadores ~., data = orcamentaria, kernel = "radial")
+
+summary(modeloSvm)
+
+````
+
+
+
+````{r}
+
+teste <- predict(modeloSvm, dados_ini)
+table(teste, result)
+
+ 
+````
+
+#SVM com o Kernal linear
+
+````{r} 
+
+require(e1071)
+
+dados_ini <- subset(orcamentaria, select = -Classifcadores)
+result <- orcamentaria$Classifcadores
+
+modeloSvm <- svm(Classifcadores ~., data = orcamentaria, kernel = "linear")
+
+summary(modeloSvm)
+
+````
+
+
+
+````{r}
+
+teste <- predict(modeloSvm, dados_ini)
+table(teste, result)
+
+ 
+````
+#SVM com o Kernal polynomial
+
+````{r} 
+
+require(e1071)
+
+dados_ini <- subset(orcamentaria, select = -Classifcadores)
+result <- orcamentaria$Classifcadores
+
+modeloSvm <- svm(Classifcadores ~., data = orcamentaria, kernel = "polynomial")
+
+summary(modeloSvm)
+
+````
+
+
+
+````{r}
+
+teste <- predict(modeloSvm, dados_ini)
+table(teste, result)
+
+ 
+````
+#SVM com o Kernal sigmoid
+
+````{r} 
+
+require(e1071)
+
+dados_iniS <- subset(orcamentaria, select = -Classifcadores)
+resultS <- orcamentaria$Classifcadores
+
+modeloSvmS <- svm(Classifcadores ~., data = orcamentaria, kernel = "sigmoid")
+
+summary(modeloSvm)
+
+````
+
+
+
+````{r}
+
+testeS <- predict(modeloSvmS, dados_iniS)
+table(testeS, resultS)
+
+ 
+````
