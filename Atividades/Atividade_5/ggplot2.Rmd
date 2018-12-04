@@ -1,0 +1,32 @@
+---
+title: "GGPLOT2"
+output: html_notebook
+---
+
+
+
+```{r}
+library(ggplot2)
+
+qplot(Empenho2018,`Empenho2000` , data = orcamentaria, col =Classifcadores,
+size = Empenho2018, alpha = I(0.6),
+xlab = 'Empenho2018', ylab = 'Empenho2000',
+main = "Unidade Orcamentaria com maior orcamento")
+
+
+```
+
+```{r}
+
+qplot(`dotação atualizada`, Empenho2018, data = orcamentaria, geom = c('point','line'), size = Empenho2018,
+colour =  Classifcadores ,xlab='dotação atualizada',ylab='Empenho2018',
+main = 'Circunfer^encia da laranjeira vs. idade')
+
+```
+
+```{r}
+
+qplot(Empenho2010, data = orcamentaria, facets=Classifcadores~.,binwidth=2)
+
+
+```

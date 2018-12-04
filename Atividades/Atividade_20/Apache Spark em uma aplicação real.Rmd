@@ -1,0 +1,58 @@
+---
+title: "Apache Spark em uma aplicação real"
+output: html_notebook
+---
+
+
+```{r}
+
+orcamentaria_spark <- copy_to(sc, orcamentaria)
+
+
+```
+
+#SQL
+
+```{r}
+
+orcam_sql <- dbGetQuery(sc, "SELECT Grupo_de_Natureza_e_Despesa, Empenho2018 FROM orcamentaria where Classifcadores = 'Outros'")
+
+
+```
+
+#Machine Learning
+
+```{r}
+
+teste <- orcamentaria_spark%>%sdf_partition( training = 0.5, test = 0.5, seed = 500)
+ 
+#FLORESTA ALEATÓRIA
+ 
+ orcam_ml <-  orcamentaria_spark%>%ml_random_forest(Classifcadores ~ Empenho2018 + dotacao_atualizada, type = "classification")
+
+ rf_predict <- sdf_predict(orcam_ml, orcamentaria_spark) %>%ft_string_indexer("Classifcadores", "Classifcadores_idx") %>%collect
+ 
+table(rf_predict$Classifcadores_idx, rf_predict$prediction)
+
+
+```
+#R Distribuido 
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

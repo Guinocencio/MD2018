@@ -1,0 +1,140 @@
+---
+title: ' House Prices: Advanced Regression Techniques'
+output: html_document
+---
+
+```{r}
+library(pacman)
+library(tidyverse)
+library(caret)
+library(dplyr)
+library(randomForest)
+library(knitr) #Gerador de relatorios dinamicos.
+
+
+```
+
+#Pré Processamento
+
+```{r}
+#fazendo o carregamento dos dados
+
+
+test <- tbl_df(read.csv("test.csv"))
+
+
+train <- tbl_df(read.csv("train.csv"))
+
+```
+#Missing values Train
+```{r}
+#Train
+
+#Retirando os valores ausentes do arquivo de treino.
+
+train_numerica <- select_if(train, is.numeric)
+
+train_numerica[is.na(train_numerica)] <- 0
+
+train_caracteres <- select_if(train, is.factor)
+
+train_caracteres[sapply(train_caracteres, is.factor)] <- lapply(train_caracteres[sapply(train_caracteres, is.factor)], as.character)
+
+#substituindo os valores ausentes pela palavra nada
+train_caracteres[is.na(train_caracteres)] <- "Nada"
+
+```
+
+```{r}
+
+train_caracteres[sapply(train_caracteres, is.character)] <- lapply(train_caracteres[sapply(train_caracteres, is.character)], as.factor)
+
+train_novo <- cbind(train_numerica, train_caracteres)
+
+```
+
+#Missing values Test
+```{r}
+#Test
+
+test_numerica <- select_if(test, is.numeric)
+
+test_numerica[is.na(test_numerica)] <- 0
+
+test_caracteres <- select_if(test, is.factor)
+
+test_caracteres[sapply(test_caracteres, is.factor)] <- lapply(test_caracteres[sapply(train_caracteres, is.factor)], as.character)
+
+test_caracteres[is.na(test_caracteres)] <- "Nada"
+
+
+```
+
+```{r}
+
+test_caracteres[sapply(test_caracteres, is.character)] <- lapply(test_caracteres[sapply(test_caracteres, is.character)], as.factor)
+
+test_novo <- cbind(test_numerica, test_caracteres)
+
+
+```
+
+```{r}
+
+library(mice)
+temptrain <- mice(train_novo, m = 5, method = "rf", maxit = 10)
+train_new <- complete(temptrain, 1)
+
+temptest <- mice(test_novo, m = 5, method = "rf", maxit = 10)
+test_new <- complete(temptrain, 1)
+
+```
+
+
+
+```{r}
+
+#teste para o caret
+modeControle <- trainControl(method ="repeatedcv", repeats = 5)
+
+rforest <- train(SalePrice ~ ., data=train_novo, 
+                 method = "rf",
+                 ntree = 1000,
+                 trControl = modeControle,
+                 tuneGrid = data.frame(mtry = 7))
+
+
+
+```
+
+
+```{r}
+
+rforest$results
+
+```
+
+
+```{r}
+
+rfor <- data.frame(predict(rforest, test_new))
+print(rfor)
+
+```
+
+```{r}
+
+  
+#Para colocar ID em um determinado numero
+rfor$ID <- 1461:(1460 + nrow(rfor))
+rfor = rfor[,c(2,1)]
+colnames(rfor) <- c('ID', 'SalePrice')
+
+write.csv(rfor, file = "PrecoVendasRF.csv", quote  = FALSE, row.names = T )
+
+
+
+```
+
+
+````
