@@ -1,45 +1,90 @@
 ---
-title: "Atividade05"
+title: "Redes Neurais"
 output: html_notebook
 ---
 
+```{r}
+#Será Necessario efetuar uma transformação no dataset, onde se encontra em tdt para data frame, se não da erro.
+p_load(RSNNS)
+
+orcamentariaT <- orcamentaria[sample(1:nrow(orcamentaria), length(1:nrow(orcamentaria))), 1:ncol(orcamentaria)]
+
+orcaValues <- orcamentaria[,3:22]
+
+```
+
+```{r}
+orcaAlvos <- decodeClassLabels(orcamentaria[,23], valTrue = 1, valFalse = 0)
+summary(decodeClassLabels(orcamentaria[,23])
 
 
-````{r} 
+```
 
-require(e1071)
+```{r}
+orcamentaria <- splitForTrainingAndTest(orcaValues, orcaAlvos,ratio=0.15)
+summary(orcamentaria)
 
-dados_ini <- subset(orcamentaria, select = -Classifcadores)
-result <- orcamentaria$Classifcadores
+```
 
-modeloSvm <- svm(Classifcadores ~., data = orcamentaria, kernel = "radial")
+```{r}
+summary(orcamentaria$inputsTrain)# antes da normalizacao
 
-summary(modeloSvm)
+```
 
-````
+```{r}
+orcamentaria<- normTrainingAndTestSet(orcamentaria)
+summary(orcamentaria$inputsTrain)
 
+```
 
-
-````{r}
-
-teste <- predict(modeloSvm, dados_ini)
-table(teste, result)
-
- 
-````
-
-
-#Teste para melhorar o modelo
-````{r}
-
-melhorado <- tune(svm, Classifcadores~ ., data = orcamentaria)
-plot(obj)
-
-tunsvm <-svm(Classifcadores ~.,orcamentaria,gamma=0.5,cost=4,cross=10)
-1-tunsvm$tot.accuracy/100
-
-table(predict(tunsvm, orcamentaria),orcamentaria$Classifcadores)
+```{r}
+model <- mlp(orcamentaria$inputsTrain, orcamentaria$targetsTrain, size=21,
+learnFuncParams=c(0.13), maxit=50,
+inputsTest=orcamentaria$inputsTest,
+targetsTest=orcamentaria$targetsTest)
 
 
+```
 
-````
+```{r}
+plotIterativeError(model)
+
+
+```
+
+```{r}
+predictions <- predict(model,orcamentaria$inputsTest)
+plotRegressionError(predictions[,1], orcamentaria$targetsTest[,1])
+
+```
+
+```{r}
+plotROC(fitted.values(model)[,1], orcamentaria$targetsTrain[,1])
+
+```
+
+```{r}
+plotROC(predictions[,-1], orcamentaria$targetsTest[,-1])
+
+
+```
+
+```{r}
+confusionMatrix(orcamentaria$targetsTrain,fitted.values(model))
+
+```
+
+```{r}
+confusionMatrix(orcamentaria$targetsTest,predictions)
+
+```
+
+```{r}
+
+confusionMatrix(orcamentaria$targetsTrain,
+encodeClassLabels(fitted.values(model),
+method="402040", l=0.4, h=0.6))
+
+```
+
+
