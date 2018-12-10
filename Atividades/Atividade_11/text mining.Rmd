@@ -1,0 +1,96 @@
+---
+title: "R Mineração de textos"
+output: html_notebook
+---
+#wordcloud para fazer grafico de letras
+
+```{r}
+p_load(stringr,SnowballC,RSentiment,wordcloud,tm,RWeka)
+
+budda <- read_lines("./Atividades/Atividade_11/35895-0.txt")
+
+```
+
+```{r}
+prop = 1
+set.seed(3)
+budda <- sample(budda, (length(budda)*prop))
+
+```
+
+```{r}
+corpus1 <- Corpus(VectorSource(list(budda)))
+corpus1 <- tm_map(corpus, removePunctuation)
+corpus1 <- tm_map(corpus, stripWhitespace)
+corpus1 <- tm_map(corpus, removeWords, stopwords('english'))
+corpus1 <- tm_map(corpus, content_transformer(tolower))
+corpus1 <- tm_map(corpus, removeNumbers) 
+
+#ou
+
+tdm <- TermDocumentMatrix(corpus, control = list (removePunctuation =TRUE, stripWhitespace =TRUE, removeNumbers =TRUE, removeWords =TRUE, stopwords('english'))
+
+dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus1[[1]]$content)))
+
+freq <- colSums(as.matrix(dtm))
+
+
+```
+
+```{r}
+
+Sentimentos <- calculate_sentiment(names(freq))
+Sentimentos <- cbind(Sentimentos, as.data.frame(freq))
+
+SentimentoPositivo <- Sentimentos[Sentimentos$sentiment == 'Positivo ',]
+SentimentoNegativo <- Sentimentos[Sentimentos$sentiment == 'Negativo',]
+
+```
+
+```{r}
+layout(matrix(c(1, 2), nrow=2), heights=c(1, 4))
+par(mar=rep(0, 4))
+
+plot.new()
+text(x=0.5, y=0.5, "The Gospel of Buddha: Positivo")
+set.seed(100)
+wordcloud(SentimentoPositivo$text, SentimentoPositivo$freq, min.freq=10,colors=brewer.pal(6,"Dark2"))
+
+plot.new()
+text(x=0.5, y=0.5, "The Gospel of Buddha: Negativo")
+set.seed(100)
+wordcloud(SentimentoNegativo$text,SentimentoNegativo$freq, min.freq=10,colors=brewer.pal(5,"Dark3"))
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
