@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+p_load(caret)
+require(pacman)
+library(pacman, tidyverse)
+require(dplyr)
+
+p_load(dplyr)
+
+orcamentaria <- tbl_df(read.csv("./Atividades/Atividade_2/historica2018.csv"))
+orcamentaria$Classifcadores <- as.numeric(orcamentaria$Classifcadores)
+
+
+```
+
+```{r}
+orcamentariaPreModel <- preProcess(orcamentaria, method = c("center","scale","nzv"))
+
+orcamentariaTraning <- createDataPartition(orcamentaria$Classifcadores,p=0.75,list = FALSE)
+training <- orcamentaria[orcamentariaTraning,]
+testing <- orcamentaria[-orcamentariaTraning,]
+
+ctrl <- trainControl(method = "cv", number = 10)
+```
+
+```{r}
+modelo <- train(Classifcadores ~., data=orcamentariaPre,
+                method="AdaBag", 
+                tuneLength = 5
+                , trCtrl=ctrl)
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
