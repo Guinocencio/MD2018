@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+require(pacman,tidyverse)
+library(readr)
+library(dplyr)
+p_load("arules", "curl", "tidyverse", "arulesViz")
+produtos <- data.frame(read.csv("./Atividades/Atividade_15/products.csv"))
+order_products_prior <-data.frame(read_csv("Atividades/Atividade_15/order_products__prior.csv"))
+
+```
+
+```{r}
+
+carrinho_de_compras <- order_products_prior %>% 
+  inner_join(produtos, by="product_id") %>% 
+  group_by(order_id) %>%
+  summarise(basket = as.vector(list(product_name)))
+
+transacoes <- as(order_baskets$basket, "transactions")
+
+```
+
+
+```{r}
+
+hist(size(transacoes), breaks = 0:150, xaxt="n", ylim=c(0,250000), 
+     main = "itens no carrinho", xlab = "#Itens")
+axis(1, at=seq(0,160,by=10), cex.axis=0.8)
+mtext(paste("Total:", length(transacoes), "carrinho,", sum(size(transacoes)), "itens"))
+
+
+```
+
+```{r}
+itensFrequentes <- itemFrequency(transacoes, type="a")
+suporte <- 0.02
+freq_items <- sort(itensFrequentes, decreasing = F)
+freq_items <- freq_items[freq_items>suporte*length(transacoes)]
+
+
+```
+
+```{r}
+
+support <- 0.008
+itensets <- apriori(transacoes, parameter = list(target = "frequent itemsets", supp=suporte, minlen=2), control = list(verbose = FALSE))
+
+Regras <- apriori(transacoes, parameter = list(supp = 0.00001, conf = 0.6, maxlen=3), control = list(verbose = FALSE)) 
+
+
+```
