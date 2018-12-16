@@ -1,0 +1,529 @@
+---
+title: "Recomendacao"
+output: html_document
+---
+
+
+
+```{r } 
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+```
+
+
+## Primeiro passo
+
+Limite de número de linhas lidas para evitar falhas de memória com o kernel
+
+```{r }
+set.seed(1)
+Produto <- fread("./Atividades/atividade_16/train_ver2.csv",nrows=-1)
+
+unique.id    <- unique(Produto$ncodpers)
+limit.people <- 150000
+unique.id    <- unique.id[sample(length(unique.id),limit.people)]
+Produto           <- Produto[Produto$ncodpers %in% unique.id,]
+str(Produto)
+```
+
+
+
+```{r }
+Produto$fecha_dato <- as.POSIXct(strptime(Produto$fecha_dato,format="%Y-%m-%d"))
+Produto$fecha_alta <- as.POSIXct(strptime(Produto$fecha_alta,format="%Y-%m-%d"))
+unique(Produto$fecha_dato)
+```
+
+
+```{r }
+Produto$month <- month(Produto$fecha_dato)
+```
+
+```{r }
+sapply(Produto,function(x)any(is.na(x)))
+```
+
+Definitivamente. Para limpeza de dados.
+
+## Limpeza de Dados
+
+Descendo a lista, comece com "Idade"
+
+```{r }
+ggplot(data=Produto,aes(x=age)) + 
+  geom_bar(alpha=0.75,fill="light blue",color="black") +
+  ggtitle("Distribuição por Age") 
+```
+
+Além de NA, existem pessoas com idades muito pequenas e muito altas.
+Também é interessante que a distribuição seja bimodal. Há um grande número de estudantes com idade de universidade e, em seguida, Agether atinge o pico na meia-idade. Vamos separar a distribuição e mover os outliers para a média do mais próximo.
+
+```{r }
+Produto$Age[(Produto$Age < 15)]  <- mean(Produto$Age[(Produto$Age >= 17) & (Produto$Age <=30)],na.rm=TRUE)
+Produto$Age[(Produto$Age > 100)] <- mean(Produto$Age[(Produto$Age >= 30) & (Produto$Age <=100)],na.rm=TRUE)
+Produto$Age[is.na(Produto$Age)]  <- median(Produto$Age,na.rm=TRUE)
+Produto$Age                 <- round(Produto$Age)
+```
+
+```{r }
+ggplot(data=Produto,aes(x=age)) + 
+  geom_bar(alpha=0.75,fill="light blue",color="black") +
+  xlim(c(18,100)) + 
+  ggtitle("Distribuição por Age") 
+```
+
+
+```{r }
+sum(is.na(Produto$ind_nuevo))
+```
+
+
+```{r }
+months.active <- Produto[is.na(Produto$ind_nuevo),] %>%
+  group_by(ncodpers) %>%
+  summarise(months.active=n())  %>%
+  select(months.active)
+max(months.active)
+```
+
+
+```{r }
+Produto$ind_nuevo[is.na(Produto$ind_nuevo)] <- 1 
+```
+
+
+```{r }
+sum(is.na(Produto$antiguedad))
+```
+
+
+```{r }
+summary(Produto[is.na(Produto$antiguedad),]%>%select(ind_nuevo))
+```
+
+
+```{r }
+Produto$antiguedad[is.na(Produto$antiguedad)] <- min(Produto$antiguedad,na.rm=TRUE)
+Produto$antiguedad[Produto$antiguedad<0]      <- 0
+```
+
+
+```{r }
+Produto$fecha_alta[is.na(Produto$fecha_alta)] <- median(Produto$fecha_alta,na.rm=TRUE)
+```
+
+
+
+```{r }
+table(Produto$indrel)
+```
+
+
+
+```{r }
+Produto$indrel[is.na(Produto$indrel)] <- 1
+```
+
+
+
+```{r }
+Produto <- Produto %>% select(-tipodom,-cod_prov)
+```
+
+
+```{r }
+sapply(Produto,function(x)any(is.na(x)))
+```
+
+
+
+```{r }
+sum(is.na(Produto$ind_actividad_cliente))
+```
+
+Até agora você provavelmente já percebeu que esse número continua aparecendo. Um hanProdutoul das entradas é apenas ruim e provavelmente deve ser excluído do modelo. Mas por enquanto vou apenas limpar / mantê-los.
+
+Apenas mais alguns recursos.
+
+```{r }
+Produto$ind_actividad_cliente[is.na(Produto$ind_actividad_cliente)] <- median(Produto$ind_actividad_cliente,na.rm=TRUE)
+```
+
+```{r }
+unique(Produto$nomprov)
+```
+
+Há algumas linhas faltando em uma Cidade que eu vou reclassificar
+
+```{r }
+Produto$nomprov[Produto$nomprov==""] <- "DESCONECIDO"
+```
+
+
+
+Agora para Gross Renda, também conhecido como `renta`
+
+```{r }
+sum(is.na(Produto$renta))
+```
+
+
+Aqui está um recurso que está faltando muitos valores. Em vez de apenas preenchê-los com uma mediana, é provavelmente mais preciso dividi-lo região por região. Para esse fim, vamos dar uma olhada na mediana Renda por região, e no espírito da competição vamos colorir como a bandeira espanhola.
+
+```{r fig.width=8, fig.height=6.3}
+Produto %>%
+  filter(!is.na(renta)) %>%
+  group_by(nomprov) %>%
+  summarise(med.Renda = median(renta)) %>%
+  arrange(med.Renda) %>%
+  mutate(Cidade=factor(nomprov,levels=nomprov)) %>% # the factor() call prevents reordering the names
+  ggplot(aes(x=Cidade,y=med.Renda)) + 
+  geom_point(color="#c60b1e") + 
+  guides(color=FALSE) + 
+  xlab("Cidade") +
+  ylab("Median Renda") +  
+  theme(axis.text.x=element_blank(), axis.ticks = element_blank()) + geom_text(aes(x=Cidade,y=med.Renda,label=Cidade),angle=90,hjust=-.25) +ylim(c(50000,200000)) + ggtitle("Renda Distribution by Cidade")
+```
+
+
+
+Há muita variação, então acho que designar Rendas perdidas pela providência é uma boa ideia. Esse código fica um pouco confuso em uma instrução SQL aninhada, mas a idéia é primeiro agrupar os dados por Cidade e reduzir para obter a mediana. Esse quadro de dados intermediário é unido pelos nomes Cidade originais para expandir as Rendas medianas agregadas, ordenadas para que haja um mapeamento de 1 para 1 entre as linhas e, finalmente, os valores ausentes sejam substituídos.
+
+```{r }
+new.Rendas <-Produto %>%
+  select(nomprov) %>%
+  merge(Produto %>%
+  group_by(nomprov) %>%
+  summarise(med.Renda=median(renta,na.rm=TRUE)),by="nomprov") %>%
+  select(nomprov,med.Renda) %>%
+  arrange(nomprov)
+Produto <- arrange(Produto,nomprov)
+Produto$renta[is.na(Produto$renta)] <- new.Rendas$med.Renda[is.na(Produto$renta)]
+rm(new.Rendas)
+
+Produto$renta[is.na(Produto$renta)] <- median(Produto$renta,na.rm=TRUE)
+Produto <- arrange(Produto,fecha_dato)
+```
+
+```{r }
+sum(is.na(Produto$ind_nomina_ult1))
+```
+
+Eu poderia tentar preencher os valores em falta para os produtos, olhando para os meses anteriores, mas desde que é um número tão pequeno de valores por agora eu vou tomar o caminho mais barato.
+
+```{r }
+Produto[is.na(Produto)] <- 0
+```
+
+
+
+```{r }
+str(Produto)
+```
+
+```{r }
+char.cols <- names(Produto)[sapply(Produto,is.character)]
+for (name in char.cols){
+  print(sprintf("Unique values for %s:", name))
+  print(unique(Produto[[name]]))
+  cat('\n')
+  }
+```
+
+
+```{r }
+Produto$inProdutoall[Produto$inProdutoall==""]                 <- "N"
+Produto$tiprel_1mes[Produto$tiprel_1mes==""]         <- "A"
+Produto$indrel_1mes[Produto$indrel_1mes==""]         <- "1"
+Produto$indrel_1mes[Produto$indrel_1mes=="P"]        <- "5" # change to just numbers because it currently contains letters and numbers
+Produto$indrel_1mes                             <- as.factor(as.integer(Produto$indrel_1mes))
+Produto$pais_residencia[Produto$pais_residencia==""] <- "DESCONECIDO"
+Produto$sexo[Produto$sexo==""]                       <- "DESCONECIDO"
+Produto$ult_fec_cli_1t[Produto$ult_fec_cli_1t==""]   <- "DESCONECIDO"
+Produto$ind_empleado[Produto$ind_empleado==""]       <- "DESCONECIDO"
+Produto$indext[Produto$indext==""]                   <- "DESCONECIDO"
+Produto$indresi[Produto$indresi==""]                 <- "DESCONECIDO"
+Produto$conyuemp[Produto$conyuemp==""]               <- "DESCONECIDO"
+Produto$segmento[Produto$segmento==""]               <- "DESCONECIDO"
+
+```
+
+
+
+```{r }
+features          <- grepl("ind_+.*ult.*",names(Produto))
+Produto[,features]     <- lapply(Produto[,features],function(x)as.integer(round(x)))
+Produto$total.services <- rowSums(Produto[,features],na.rm=TRUE)
+```
+
+
+
+
+```{r }
+Produto               <- Produto %>% arrange(fecha_dato)
+Produto$month.id      <- as.numeric(factor((Produto$fecha_dato)))
+Produto$month.next.id <- Produto$month.id + 1
+```
+
+
+Agora vou criar uma função que converterá as diferenças mês a mês em um rótulo significativo. Todo mês, um cliente pode manter seu status atual com um determinado produto, adicioná-lo ou soltá-lo.
+
+```{r }
+status.change <- function(x){
+  if ( length(x) == 1 ) { 
+    label = ifelse(x==1,"Adicionado","Maintained")
+  } else {
+    diffs <- diff(x)
+    diffs <- c(0,diffs)
+    label <- rep("Manutencao", length(x))
+    label <- ifelse(diffs==1,"Adicionado",
+                    ifelse(diffs==-1,"Desistencia",
+                           "Manutencao"))
+  }
+  label
+}
+```
+
+Agora podemos realmente aplicar essa função para cada recurso usando `lapply` e` ave`
+
+```{r echo=TRUE,messAge=FALSE,warning=FALSE}
+Produto[,features] <- lapply(Produto[,features], function(x) return(ave(x,Produto$ncodpers, FUN=status.change)))
+```
+
+
+Estou interessado apenas em ver o que influencia as pessoas adicionando ou removendo serviços, por isso vou eliminar todas as instâncias de "Mantidas". Como as grandes operações de fundição / fundição podem ser lentas, vou tomar o tempo necessário para verificar as linhas que devem ser completamente removidas, depois derreter o restante e remover as outras.
+
+```{r }
+interesting <- rowSums(Produto[,features]!="Manutencao")
+Produto          <- Produto[interesting>0,]
+Produto          <- Produto %>%
+                gather(key=feature,
+                value=status,
+                ind_ahor_fin_ult1:ind_recibo_ult1)
+Produto          <- filter(Produto,status!="Manutencao")
+head(Produto)
+```
+
+
+# Data Visualizations
+### *Note: This is still a work in progress*
+
+Does the ratio of dropping/adding services change over the year?
+```{r ,fig.width=12, fig.height=9}
+totals.by.feature <- Produto %>%
+  group_by(month,feature) %>%
+  summarise(counts=n())
+
+Produto %>% 
+  group_by(month,feature,status) %>%
+  summarise(counts=n())%>%
+  ungroup() %>%
+  inner_join(totals.by.feature,by=c("mes","característica")) %>%
+
+  mutate(counts=counts.x/counts.y) %>%
+  ggplot(aes(y=counts,x=factor(month.abb[month],levels=month.abb[seq(12,1,-1)]))) +
+  geom_bar(aes(fill=status), stat="identidade") +
+  facet_wrap(facets=~feature,ncol = 6) +
+  coord_flip() +
+  my_theme_dark + 
+  ylab("contador") +
+  xlab("") + 
+  ylim(limits=c(0,1)) +
+  ggtitle("Serviço Relativo \n Mudancas por mes") +
+  theme(axis.text   = element_text(size=10),
+        legend.text = element_text(size=14),
+        legend.title= element_blank()      ,
+        strip.text  = element_text(face="bold")) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+  # scale_fill_brewer(palette = 3) 
+```
+
+Let's see how product Mudancas vary over the calendar year. Some months occur more than others, so we need to account for that.
+```{r ,fig.width=12, fig.height=9}
+month.counts              <- table(unique(Produto$month.id)%%12)
+cur.names                 <- names(month.counts)
+cur.names[cur.names=="0"] <- "12"
+names(month.counts) <- cur.names
+month.counts              <- data.frame(month.counts) %>%
+  rename(month=Var1,month.count=Freq) %>% mutate(month=as.numeric(month))
+
+Produto %>% 
+  group_by(month,feature,status) %>%
+  summarise(counts=n())%>%
+  ungroup() %>%
+  inner_join(month.counts,by="mes") %>%
+
+  mutate(counts=counts/month.count) %>%
+  ggplot(aes(y=counts,x=factor(month.abb[month],levels=month.abb[seq(12,1,-1)]))) +
+  geom_bar(aes(fill=status), stat="identidade") +
+  facet_wrap(facets=~feature,ncol = 6) +
+  coord_flip() +
+  my_theme_dark + 
+  ylab("Count") +
+  xlab("") + 
+  ggtitle("Media de Servico \n Mudancas por mes") +
+  theme(axis.text    = element_text(size=10),
+        legend.text  = element_text(size=14),
+        legend.title = element_blank()      ,
+        strip.text   = element_text(face="bold")) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+  # scale_fill_brewer(palette = 3) 
+```
+
+```{r ,fig.width=12, fig.height=9}
+Produto %>%
+  filter(sexo!="DESCONHECIDO") %>%
+  ggplot(aes(x=sexo)) +
+  geom_bar(aes(fill=status)) +
+  facet_wrap(facets=~feature,ncol = 6) +
+  my_theme_dark + 
+  ylab("Count") +
+  xlab("") +
+  ggtitle("Servico Mudancas by genero") +
+  theme(axis.text    = element_text(size=10),
+        legend.text  = element_text(size=14),
+        legend.title = element_blank()      ,
+        strip.text   = element_text(face="bold")) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+  # scale_fill_brewer(palette = 3) 
+```
+
+
+```{r }
+tot.H  <- sum(Produto$sexo=="H")
+tot.V  <- sum(Produto$sexo=="V")
+tmp.Produto <- Produto %>%
+  group_by(sexo,status) %>%
+  summarise(counts=n())
+tmp.Produto$counts[tmp.Produto$sexo=="H"] = tmp.Produto$counts[tmp.Produto$sexo=="H"] / tot.H
+tmp.Produto$counts[tmp.Produto$sexo=="V"] = tmp.Produto$counts[tmp.Produto$sexo=="V"] / tot.V
+tmp.Produto %>%
+  filter(sexo!="DESCONHECIDO") %>%
+  ggplot(aes(x=factor(feature),y=counts)) +
+  geom_bar(aes(fill=status,sexo),stat='identidade') +
+  coord_flip() +
+  my_theme_dark + 
+  ylab("taxa") +
+  xlab("") +
+  ggtitle("Serviço Normalizado \ n Mudanças por Gênero") +
+  theme(axis.text    = element_text(size=20),
+        legend.text  = element_text(size=14),
+        legend.title = element_blank()      ,
+        strip.text   = element_text(face="bold")) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+
+rm(tmp.Produto)
+```
+
+
+```{r ,fig.width=8, fig.height=9}
+tot.new     <- sum(Produto$ind_nuevo==1)
+tot.not.new <- sum(Produto$ind_nuevo!=1)
+tmp.Produto      <- Produto %>%
+  group_by(ind_nuevo,status) %>%
+  summarise(counts=n())
+tmp.Produto$counts[tmp.Produto$ind_nuevo==1] = tmp.Produto$counts[tmp.Produto$ind_nuevo==1] / tot.new
+tmp.Produto$counts[tmp.Produto$ind_nuevo!=1] = tmp.Produto$counts[tmp.Produto$ind_nuevo!=1] / tot.not.new
+tmp.Produto %>%
+  ggplot(aes(x=factor(feature),y=counts)) +
+  geom_bar(aes(fill=status,factor(ind_nuevo)),stat='identidade') +
+  coord_flip() +
+  ylab("Contador") +
+  xlab("") +
+  ggtitle("Serviço Normalizado \ n Mudanças pelo Novo Status") +
+  theme(axis.text    = element_text(size=10),
+        legend.text  = element_text(size=14),
+        legend.title = element_blank()      ,
+        strip.text   = element_text(face="bold")) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+  
+rm(tmp.Produto)
+```
+
+```{r }
+Produto %>%
+  group_by(nomprov,status) %>%
+  summarise(y=mean(total.services)) %>%
+  ggplot(aes(x=factor(nomprov,levels=sort(unique(nomprov),decreasing=TRUE)),y=y)) +
+  geom_bar(stat="identidade",aes(fill=status)) +
+  geom_text(aes(label=nomprov),
+            y=0.2,
+            hjust=0,
+            angle=0,
+            size=3,
+            color="#222222") +
+  coord_flip() +
+  xlab("Cidade") +
+  ylab("Total # Mudancas") + 
+  ggtitle("Service Mudancas\n by Cidade") +
+  theme(axis.text    = element_blank(),
+        legend.text  = element_text(size=14),
+        legend.title = element_text(size=18)) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+```
+
+```{r }
+Produto %>%
+  group_by(antiguedad,status) %>%
+  summarise(counts=n()) %>%
+  ggplot(aes(x=factor(antiguedad),y=log(counts))) +
+  geom_point(alpha=0.6,aes(color=status)) +
+  xlab("Antiguidade (Months)") +
+  ylab("Total # Mudancas") + 
+  ggtitle("Service Mudancas \n by Antiguidade") +
+  theme(axis.text    = element_blank(),
+        legend.text  = element_text(size=14),
+        legend.title = element_text(size=18)) +
+  scale_color_manual(values=c("cyan","mAgenta"))
+```
+
+```{r }
+Produto %>%
+  ggplot(aes(x=Age,y=log(renta))) +
+  geom_point(alpha=0.5,aes(color=status)) +
+  xlab("Ano") +
+  ylab("Renda (log scale)") + 
+  ggtitle("Renda vs. Ano") +
+  theme(
+        legend.text  = element_text(size=14),
+        legend.title = element_text(size=18)) +
+  scale_color_manual(values=c("cyan","mAgenta"))
+```
+
+
+```{r }
+Produto %>%
+  group_by(ncodpers) %>%
+  summarise(Age=max(Age),Antiguidade=max(antiguedad)) %>%
+  select(Age,Antiguidade) %>%
+  ggplot(aes(x=Age,y=Antiguidade)) +
+  geom_point(alpha=0.4) +
+  ggtitle("Antiguidade vs. Ano")
+```
+
+
+```{r }
+Produto %>%
+  group_by(nomprov,status) %>%
+  summarise(y=mean(total.services)) %>%
+  ggplot(aes(x=factor(nomprov,levels=sort(unique(nomprov),decreasing=TRUE)),y=y)) +
+  geom_bar(stat="identidade",aes(fill=status)) +
+  geom_text(aes(label=nomprov),
+            y=0.2,
+            hjust=0,
+            angle=0,
+            size=3,
+            color="#222222") +
+  coord_flip() +
+  my_theme_dark +
+  xlab("Cidade") +
+  ylab("Total # Mudancas") + 
+  ggtitle("Service Mudancas\n by Cidade") +
+  theme(axis.text    = element_blank(),
+        legend.text  = element_text(size=14),
+        legend.title = element_text(size=18)) +
+  scale_fill_manual(values=c("cyan","mAgenta"))
+```
