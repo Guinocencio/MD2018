@@ -5,7 +5,7 @@ author: "Marcelo Albertini"
 output: html_notebook
 ---
 
-# Configuração de um ambiente
+#Configuração de um ambiente
 
 
 Podemos configurar variáveis de ambiente, globalmente, usando a função `options()`:
